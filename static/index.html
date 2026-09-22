@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DockLedger</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:#07111c;color:#e8f0f8}body{margin:0;background:radial-gradient(circle at 20% 0,#12334d 0,#07111c 42%);min-height:100vh}.wrap{max-width:1050px;margin:auto;padding:48px 22px 70px}.eyebrow{color:#72d2ff;font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:12px}h1{font-size:52px;line-height:1;margin:10px 0 14px}p{color:#a9bac9;line-height:1.6}.hero{display:flex;justify-content:space-between;gap:28px;align-items:end}.tag{border:1px solid #24445c;background:#0b1b29;border-radius:999px;padding:8px 12px;color:#cfeaff;font-size:13px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:28px}.card{background:rgba(9,25,38,.88);border:1px solid #1d3b51;border-radius:18px;padding:20px;box-shadow:0 15px 50px rgba(0,0,0,.22)}.full{grid-column:1/-1}h2{font-size:18px;margin:0 0 14px}.metric{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.metric div{background:#0c2132;border:1px solid #16384f;border-radius:12px;padding:14px}.metric strong{display:block;font-size:22px;color:#fff}.metric span{font-size:12px;color:#8da5b7}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:11px 8px;border-bottom:1px solid #173247}th{color:#7dcdf4;font-size:12px;text-transform:uppercase;letter-spacing:.06em}button{cursor:pointer;border:0;background:#39bdf8;color:#04111a;font-weight:800;border-radius:11px;padding:12px 16px}input{background:#081824;color:#e8f0f8;border:1px solid #28506b;border-radius:9px;padding:9px;width:85px}pre{white-space:pre-wrap;background:#06131d;border:1px solid #18364b;padding:16px;border-radius:12px;min-height:120px;color:#cfe8f7}.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.status{font-size:13px;color:#8fa9bb}@media(max-width:760px){h1{font-size:40px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.metric{grid-template-columns:1fr 1fr}.hero{display:block}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div>
+      <div class="eyebrow">Amazon Developer Hackathon · Ring track · Business systems</div>
+      <h1>DockLedger</h1>
+      <p>Turn dock-side Ring events into a human-reviewed evidence trail for truck dwell time, detention charges, and invoice disputes.</p>
+    </div>
+    <div class="tag">MVP v0.1 · synthetic demo + live Ring API endpoints</div>
+  </div>
+
+  <div class="grid">
+    <section class="card"><h2>1. Scheduled delivery</h2><div id="delivery">Loading…</div></section>
+    <section class="card"><h2>2. Ring evidence candidates</h2><div id="events">Loading…</div></section>
+    <section class="card full">
+      <h2>3. Reconcile detention invoice</h2>
+      <div class="actions">
+        <label>Claimed minutes <input id="claimedMinutes" type="number" value="60"></label>
+        <label>Claimed amount $ <input id="claimedAmount" type="number" value="90"></label>
+        <button id="run">Build evidence record</button>
+        <span class="status">Arrival/departure are intentionally human-confirmed.</span>
+      </div>
+      <div id="metrics" class="metric" style="margin-top:16px"></div>
+      <pre id="output">Select the sample evidence and run reconciliation.</pre>
+    </section>
+  </div>
+</div>
+<script>
+let payload;
+async function init(){
+  payload = await fetch('/api/demo').then(r=>r.json());
+  const d=payload.delivery;
+  document.getElementById('delivery').innerHTML=`<table><tr><th>ID</th><td>${d.delivery_id}</td></tr><tr><th>Carrier</th><td>${d.carrier}</td></tr><tr><th>Truck</th><td>${d.truck_ref}</td></tr><tr><th>Dock</th><td>${d.dock}</td></tr><tr><th>Window</th><td>${new Date(d.scheduled_start).toLocaleTimeString()} → ${new Date(d.scheduled_end).toLocaleTimeString()}</td></tr><tr><th>Free time</th><td>${d.free_minutes} min</td></tr></table>`;
+  document.getElementById('events').innerHTML=`<table><tr><th>Event</th><th>Time</th><th>Review tag</th></tr>${payload.candidate_events.map(e=>`<tr><td>${e.event_type}</td><td>${new Date(e.timestamp).toLocaleTimeString()}</td><td>${e.operator_tag||'unreviewed'}</td></tr>`).join('')}</table>`;
+}
+async function run(){
+  const arrival=payload.candidate_events.find(e=>e.operator_tag==='arrival_candidate');
+  const departure=payload.candidate_events.find(e=>e.operator_tag==='departure_candidate');
+  const body={delivery_id:payload.delivery.delivery_id,arrival_event_id:arrival.event_id,departure_event_id:departure.event_id,claimed_minutes:Number(document.getElementById('claimedMinutes').value),claimed_amount:Number(document.getElementById('claimedAmount').value)};
+  const result=await fetch('/api/reconcile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
+  const v=result.visit_evidence, i=result.invoice_comparison;
+  document.getElementById('metrics').innerHTML=`<div><strong>${v.dwell_minutes}</strong><span>dwell minutes</span></div><div><strong>${v.billable_minutes}</strong><span>billable minutes</span></div><div><strong>$${v.estimated_detention.toFixed(2)}</strong><span>evidence estimate</span></div><div><strong>${i.verdict.replace('_',' ')}</strong><span>invoice verdict</span></div>`;
+  document.getElementById('output').textContent=JSON.stringify(result,null,2);
+}
+document.getElementById('run').onclick=run; init();
+</script>
+</body>
+</html>
