@@ -1,0 +1,2 @@
+delivery_id,carrier,truck_ref,dock,scheduled_start,scheduled_end,free_minutes,detention_rate_per_hour
+DL-2026-001,Northstar Freight,TRK-4812,Dock 4,2026-09-22T08:00:00+00:00,2026-09-22T09:00:00+00:00,60,90
