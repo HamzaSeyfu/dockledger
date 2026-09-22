@@ -1,0 +1,23 @@
+[
+  {
+    "event_id": "ring-evt-001",
+    "device_id": "demo-dock-camera-4",
+    "event_type": "motion.human",
+    "timestamp": "2026-09-22T07:53:00+00:00",
+    "operator_tag": "arrival_candidate"
+  },
+  {
+    "event_id": "ring-evt-002",
+    "device_id": "demo-dock-camera-4",
+    "event_type": "motion.human",
+    "timestamp": "2026-09-22T08:27:00+00:00",
+    "operator_tag": "yard_activity"
+  },
+  {
+    "event_id": "ring-evt-003",
+    "device_id": "demo-dock-camera-4",
+    "event_type": "motion.human",
+    "timestamp": "2026-09-22T09:41:00+00:00",
+    "operator_tag": "departure_candidate"
+  }
+]
